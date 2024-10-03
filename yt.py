@@ -3,13 +3,28 @@
 import os
 import sys
 import subprocess
+import json
 import xml.etree.ElementTree as ET
 import html
 from urllib import request
+from urllib.parse import urlparse, parse_qs
+
+def extract_video_id(url):
+    """Extract the video ID from YouTube URL or youtu.be shortlink."""
+    parsed_url = urlparse(url)
+    if 'youtube.com' in parsed_url.netloc:
+        return parse_qs(parsed_url.query).get('v', [None])[0]
+    elif 'youtu.be' in parsed_url.netloc:
+        return parsed_url.path[1:]  # Remove the leading slash
+    return None
 
 def fetch_transcript(video_url):
     # Extract video ID
-    video_id = video_url.split('v=')[-1][:11]
+    video_id = extract_video_id(video_url)
+    if not video_id:
+        print("Invalid YouTube URL.")
+        return
+    
     cache_file = f"/tmp/transcript_{video_id}"
 
     # Check if cache file exists
@@ -20,7 +35,7 @@ def fetch_transcript(video_url):
 
     # Fetch video metadata using yt-dlp
     result = subprocess.run(['yt-dlp', '--dump-json', video_url], stdout=subprocess.PIPE, text=True)
-    metadata = eval(result.stdout)  # eval used for simplicity with yt-dlp json-like output
+    metadata = json.loads(result.stdout)  # Safely parse JSON
 
     # Extract relevant information
     title = metadata.get('title', 'Unknown Title')

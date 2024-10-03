@@ -36,11 +36,15 @@ fetch_transcript() {
             if (chapter_count > 0) {
                 print "### 1. " chapter_titles[1]
             }
+            prev_caption = ""
         }
         /^[0-9]/ {
-            if (in_caption) {
-                in_caption = 0
-                print ""
+            if (caption != "") {
+                if (caption != prev_caption) {
+                    print caption
+                    prev_caption = caption
+                }
+                caption = ""
             }
             split($1, start_time, ":")
             start_seconds = start_time[1] * 3600 + start_time[2] * 60 + start_time[3]
@@ -51,10 +55,14 @@ fetch_transcript() {
             next
         }
         !/^WEBVTT|^Kind:|^Language:/ && !/<[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3}>/ {
-            if (!in_caption) {
-                in_caption = 1
-                gsub(/^[[:space:]]+|[[:space:]]+$/, "")
-                if ($0 != "") print $0
+            gsub(/^[[:space:]]+|[[:space:]]+$/, "")
+            if ($0 != "") {
+                caption = caption ? caption " " $0 : $0
+            }
+        }
+        END {
+            if (caption != "" && caption != prev_caption) {
+                print caption
             }
         }
     ')

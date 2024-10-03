@@ -18,11 +18,11 @@ fetch_transcript() {
     local description=$(echo "$metadata" | jq -r '.description')
     local chapters=$(echo "$metadata" | jq -r '.chapters | map("\(.start_time)|\(.title)") | join("\n")')
 
-    # Fetch transcript
-    local transcript_url=$(echo "$metadata" | jq -r '.automatic_captions."en-orig"[] | select(.ext=="vtt") | .url')
+    # Fetch TTML transcript
+    local transcript_url=$(echo "$metadata" | jq -r '.automatic_captions."en-orig"[] | select(.ext=="ttml") | .url')
     local transcript=$(curl -s "$transcript_url")
 
-    # Process transcript and add chapters
+    # Process TTML transcript and add chapters
     local processed_transcript=$(echo "$transcript" | awk -v chapters="$chapters" '
         BEGIN {
             split(chapters, chapter_array, "\n")
@@ -37,16 +37,18 @@ fetch_transcript() {
                 print "### 1. " chapter_titles[1]
             }
         }
-        /^[0-9]/ {
-            split($1, start_time, ":")
-            start_seconds = start_time[1] * 3600 + start_time[2] * 60 + start_time[3]
+        /<p begin=/ {
+            match($0, /begin="([0-9:.]+)" end="([0-9:.]+)"/, time)
+            gsub(/<\/?[^>]+(>|$)/, "", $0)  # Remove XML tags
+            start_time = time[1]
+            split(start_time, time_parts, ":")
+            start_seconds = time_parts[1] * 3600 + time_parts[2] * 60 + time_parts[3]
+
             while (chapter_index < chapter_count && start_seconds >= chapter_times[chapter_index + 1]) {
                 chapter_index++
                 print "\n### " chapter_index ". " chapter_titles[chapter_index]
             }
-            next
-        }
-        !/^WEBVTT|^Kind:|^Language:/ && !/<[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3}>/ {
+
             gsub(/^[[:space:]]+|[[:space:]]+$/, "")
             if ($0 != "") {
                 if (caption != "") {
@@ -86,3 +88,4 @@ if [ $# -eq 0 ]; then
 fi
 
 fetch_transcript "$1"
+

@@ -2,6 +2,7 @@
 
 import os
 import sys
+import re
 import subprocess
 import json
 import xml.etree.ElementTree as ET
@@ -10,13 +11,9 @@ from urllib import request
 from urllib.parse import urlparse, parse_qs
 
 def extract_video_id(url):
-    """Extract the video ID from YouTube URL or youtu.be shortlink."""
-    parsed_url = urlparse(url)
-    if 'youtube.com' in parsed_url.netloc:
-        return parse_qs(parsed_url.query).get('v', [None])[0]
-    elif 'youtu.be' in parsed_url.netloc:
-        return parsed_url.path[1:]  # Remove the leading slash
-    return None
+    """Extract the video ID from YouTube URL or youtu.be shortlink using regex."""
+    match = re.search(r'(?:v=|youtu\.be/)([\w-]{11})', url)
+    return match.group(1) if match else None
 
 def fetch_transcript(video_url):
     # Extract video ID
@@ -24,7 +21,7 @@ def fetch_transcript(video_url):
     if not video_id:
         print("Invalid YouTube URL.")
         return
-    
+
     cache_file = f"/tmp/transcript_{video_id}"
 
     # Check if cache file exists
@@ -57,7 +54,7 @@ def fetch_transcript(video_url):
     # Parse the TTML and extract captions
     root = ET.fromstring(ttml_data)
     namespace = {'ttml': 'http://www.w3.org/ns/ttml'}
-    
+
     captions_list = []
     for p in root.findall('.//ttml:p', namespace):
         begin = p.attrib.get('begin', '')
@@ -68,7 +65,7 @@ def fetch_transcript(video_url):
 
     # Process chapters
     chapter_data = [(chapter['start_time'], chapter['title']) for chapter in chapters]
-    
+
     # Format transcript with chapters
     transcript = []
     chapter_index = 0
@@ -85,7 +82,7 @@ def fetch_transcript(video_url):
 
     # Generate output in Markdown format
     output = f"# {title}\n\n- [Video URL]({video_url})\n\n## Description\n\n> {description}\n\n## Transcript\n\n" + "\n".join(transcript)
-    
+
     # Write to cache file
     with open(cache_file, 'w') as file:
         file.write(output)

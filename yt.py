@@ -93,7 +93,7 @@ def fetch_transcript(video_url):
 # Main script
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: python3 script.py <youtube_url>")
+        print("Usage: yt <youtube_url>")
         sys.exit(1)
 
     video_url = sys.argv[1]

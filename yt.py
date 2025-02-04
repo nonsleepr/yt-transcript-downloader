@@ -37,7 +37,7 @@ def fetch_transcript(video_url):
     # Extract relevant information
     title = metadata.get('title', 'Unknown Title')
     description = metadata.get('description', 'No description available.')
-    chapters = metadata.get('chapters', [])
+    chapters = metadata.get('chapters') or []
 
     # Fetch TTML transcript URL
     captions = metadata.get('automatic_captions', {}).get('en-orig', [])

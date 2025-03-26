@@ -40,7 +40,8 @@ def fetch_transcript(video_url):
     chapters = metadata.get('chapters') or []
 
     # Fetch TTML transcript URL
-    captions = metadata.get('automatic_captions', {}).get('en-orig', [])
+    automatic_captions = metadata.get('automatic_captions', {})
+    captions = automatic_captions.get('en-orig') or automatic_captions.get('en', [])
     transcript_url = next((item['url'] for item in captions if item['ext'] == 'ttml'), None)
 
     if not transcript_url:
